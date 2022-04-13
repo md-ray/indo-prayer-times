@@ -1,0 +1,5 @@
+{
+  "name": "Indonesian Prayer Times based on Kemenag",
+  "render_readme": true,
+  "iot_class": "cloud_polling"
+}

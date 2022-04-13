@@ -1,0 +1,11 @@
+{
+  "codeowners": ["md-ray"],
+  "config_flow": true,
+  "dependencies": [],
+  "documentation": "https://github.com/md-ray/indo-prayer-times",
+  "domain": "indo-prayer-times",
+  "iot_class": "cloud_polling",
+  "name": "Indonesian Prayer Times based on Kemenag ",
+  "requirements": [],
+  "version": "1.0.0"
+}
