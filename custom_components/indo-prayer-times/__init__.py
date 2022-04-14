@@ -1,7 +1,9 @@
 from datetime import timedelta
+from datetime import date
 import logging
+import requests
 
-from prayer_times_calculator import PrayerTimesCalculator, exceptions
+#from prayer_times_calculator import PrayerTimesCalculator, exceptions
 from requests.exceptions import ConnectionError as ConnError
 import voluptuous as vol
 
@@ -18,6 +20,10 @@ import homeassistant.util.dt as dt_util
 from .const import (
     DATA_UPDATED,
     DOMAIN,
+    SENSOR_TYPES,
+    CONF_CALC_METHOD,
+    DEFAULT_CALC_METHOD,
+    CALC_METHODS
 )
 
 _LOGGER = logging.getLogger(__name__)
@@ -37,7 +43,6 @@ CONFIG_SCHEMA = vol.Schema(
     ),
     extra=vol.ALLOW_EXTRA,
 )
-
 
 async def async_setup(hass: HomeAssistant, config: ConfigType) -> bool:
     """Import the Islamic Prayer component from config."""
@@ -80,14 +85,16 @@ class IndoPrayerClient:
         self.prayer_times_info = {}
         self.available = True
         self.event_unsub = None
+        _LOGGER.info("debug00")
 
+    """
     @property
     def calc_method(self):
-        """Return the calculation method."""
         return self.config_entry.options[CONF_CALC_METHOD]
+    """
 
     def get_new_prayer_times(self):
-        """Fetch prayer times for today."""
+        """Fetch prayer times for today.
         calc = PrayerTimesCalculator(
             latitude=self.hass.config.latitude,
             longitude=self.hass.config.longitude,
@@ -95,6 +102,21 @@ class IndoPrayerClient:
             date=str(dt_util.now().date()),
         )
         return calc.fetch_prayer_times()
+        """
+        id_city = "1108"
+        today = date.today()
+        dt_today = today.strftime("%Y/%m/%d")
+        _LOGGER.info("debug01")
+        # Call MyQuran API
+        myquran_url = "https://api.myquran.com/v1/sholat/jadwal/" + id_city + "/" + dt_today
+        response = requests.get(myquran_url)
+        if (response.status_code == 200):
+            retval = response.json()
+            _LOGGER.info("Successful call to myquran API")
+            return retval["data"]["jadwal"]
+        else:
+            _LOGGER.info("Failed call to myquran API")
+            return None
 
     async def async_schedule_future_update(self):
         """Schedule future update for sensors.
@@ -125,7 +147,7 @@ class IndoPrayerClient:
         update time: 1:36AM.
 
         """
-        _LOGGER.debug("Scheduling next update for Islamic prayer times")
+        _LOGGER.info("Scheduling next update for Islamic prayer times")
 
         now = dt_util.utcnow()
 
@@ -160,19 +182,25 @@ class IndoPrayerClient:
             _LOGGER.debug("Error retrieving prayer times")
             async_call_later(self.hass, 60, self.async_update)
             return
+        _LOGGER.info("debug03")
+        if (prayer_times != None):
+            for sensor_type in SENSOR_TYPES:
+                self.prayer_times_info[sensor_type] = prayer_times[sensor_type]
 
+        """
         for prayer, time in prayer_times.items():
             self.prayer_times_info[prayer] = dt_util.parse_datetime(
                 f"{dt_util.now().date()} {time}"
             )
         await self.async_schedule_future_update()
+        """
 
         _LOGGER.debug("New prayer times retrieved. Updating sensors")
         async_dispatcher_send(self.hass, DATA_UPDATED)
 
     async def async_setup(self):
         """Set up the Islamic prayer client."""
-        await self.async_add_options()
+        #await self.async_add_options()
 
         try:
             await self.hass.async_add_executor_job(self.get_new_prayer_times)
@@ -180,14 +208,14 @@ class IndoPrayerClient:
             raise ConfigEntryNotReady from err
 
         await self.async_update()
-        self.config_entry.add_update_listener(self.async_options_updated)
+        #self.config_entry.add_update_listener(self.async_options_updated)
 
         self.hass.config_entries.async_setup_platforms(self.config_entry, PLATFORMS)
 
         return True
 
+    """
     async def async_add_options(self):
-        """Add options for entry."""
         if not self.config_entry.options:
             data = dict(self.config_entry.data)
             calc_method = data.pop(CONF_CALC_METHOD, DEFAULT_CALC_METHOD)
@@ -195,6 +223,7 @@ class IndoPrayerClient:
             self.hass.config_entries.async_update_entry(
                 self.config_entry, data=data, options={CONF_CALC_METHOD: calc_method}
             )
+    """
 
     @staticmethod
     async def async_options_updated(hass: HomeAssistant, entry: ConfigEntry) -> None:
