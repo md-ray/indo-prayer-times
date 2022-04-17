@@ -46,7 +46,7 @@ class IndoPrayerTimeSensor(SensorEntity):
     @property
     def name(self):
         """Return the name of the sensor."""
-        return f"{self.sensor_type} {SENSOR_TYPES[self.sensor_type]}"
+        return f"{SENSOR_TYPES[self.sensor_type]}"
 
     @property
     def unique_id(self):
@@ -61,8 +61,11 @@ class IndoPrayerTimeSensor(SensorEntity):
         _LOGGER.info("xxx02")
         today = date.today()
         dt_today = today.strftime("%Y-%m-%d")
-
-        date_time_obj = datetime.datetime.strptime(dt_today + " " + self.client.prayer_times_info.get(self.sensor_type), '%Y-%m-%d %H:%M')
+        #jadwal = self.client.prayer_times_info.get(self.sensor_type).split(":")
+        isostr = dt_today + " " + self.client.prayer_times_info.get(self.sensor_type) + ":00+07:00"
+        _LOGGER.info("asoy = " + isostr)
+        date_time_obj = datetime.datetime.fromisoformat(isostr)
+        #date_time_obj = datetime.datetime.strptime(dt_today + " " + self.client.prayer_times_info.get(self.sensor_type), '%Y-%m-%d %H:%M').astimezone(dt_util.UTC)
         return date_time_obj #.astimezone(dt_util.UTC)
         #return self.client.prayer_times_info.get(self.sensor_type).astimezone(dt_util.UTC)
         

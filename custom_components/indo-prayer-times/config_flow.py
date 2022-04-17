@@ -43,8 +43,13 @@ class IslamicPrayerOptionsFlowHandler(config_entries.OptionsFlow):
     async def async_step_init(self, user_input=None):
         """Manage options."""
         if user_input is not None:
-            return self.async_create_entry(title="", data=user_input)
+            return self.async_create_entry(title="Please input your Location ID (see github)", data=user_input)
 
+        options = {
+            vol.Required("id_city", default = self.config_entry.options.get("id_city", 1108)) : int
+        }
+
+        """
         options = {
             vol.Optional(
                 CONF_CALC_METHOD,
@@ -53,5 +58,6 @@ class IslamicPrayerOptionsFlowHandler(config_entries.OptionsFlow):
                 ),
             ): vol.In(CALC_METHODS)
         }
+        """
 
         return self.async_show_form(step_id="init", data_schema=vol.Schema(options))

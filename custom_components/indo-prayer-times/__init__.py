@@ -1,7 +1,9 @@
 from datetime import timedelta
 from datetime import date
 import logging
+from socket import IP_DEFAULT_MULTICAST_TTL
 import requests
+import datetime
 
 #from prayer_times_calculator import PrayerTimesCalculator, exceptions
 from requests.exceptions import ConnectionError as ConnError
@@ -82,7 +84,15 @@ class IndoPrayerClient:
         """Initialize the Islamic Prayer client."""
         self.hass = hass
         self.config_entry = config_entry
-        self.prayer_times_info = {}
+        self.prayer_times_info = {
+            "indoprayer_imsak" : "00:00",
+            "indoprayer_subuh" : "00:00",
+            "indoprayer_dzuhur" : "00:00",
+            "indoprayer_ashar" : "00:00",
+            "indoprayer_maghrib" : "00:00",
+            "indoprayer_isya" : "00:00",
+
+        }
         self.available = True
         self.event_unsub = None
         _LOGGER.info("debug00")
@@ -103,12 +113,15 @@ class IndoPrayerClient:
         )
         return calc.fetch_prayer_times()
         """
-        id_city = "1108"
+        #Get Current ID city from config
+        id_city = self.config_entry.options.get("id_city", 1108)
+        str_id_city = str(id_city).zfill(4)
+
         today = date.today()
         dt_today = today.strftime("%Y/%m/%d")
         _LOGGER.info("debug01")
         # Call MyQuran API
-        myquran_url = "https://api.myquran.com/v1/sholat/jadwal/" + id_city + "/" + dt_today
+        myquran_url = "https://api.myquran.com/v1/sholat/jadwal/" + str_id_city + "/" + dt_today
         response = requests.get(myquran_url)
         if (response.status_code == 200):
             retval = response.json()
@@ -150,7 +163,9 @@ class IndoPrayerClient:
         _LOGGER.info("Scheduling next update for Islamic prayer times")
 
         now = dt_util.utcnow()
+        next_update_at = dt_util.start_of_local_day(now + timedelta(days=1))
 
+        """
         midnight_dt = self.prayer_times_info["Midnight"]
 
         if now > dt_util.as_utc(midnight_dt):
@@ -163,7 +178,7 @@ class IndoPrayerClient:
                 "Midnight is before the day changes so schedule update for the next start of day"
             )
             next_update_at = dt_util.start_of_local_day(now + timedelta(days=1))
-
+        """
         _LOGGER.info("Next update scheduled for: %s", next_update_at)
 
         self.event_unsub = async_track_point_in_time(
@@ -184,16 +199,32 @@ class IndoPrayerClient:
             return
         _LOGGER.info("debug03")
         if (prayer_times != None):
-            for sensor_type in SENSOR_TYPES:
-                self.prayer_times_info[sensor_type] = prayer_times[sensor_type]
+            self.prayer_times_info["indoprayer_imsak"] = prayer_times["imsak"]
+            self.prayer_times_info["indoprayer_subuh"] = prayer_times["subuh"]
+            self.prayer_times_info["indoprayer_terbit"] = prayer_times["terbit"]
+            self.prayer_times_info["indoprayer_dzuhur"] = prayer_times["dzuhur"]
+            self.prayer_times_info["indoprayer_ashar"] = prayer_times["ashar"]
+            self.prayer_times_info["indoprayer_maghrib"] = prayer_times["maghrib"]
+            self.prayer_times_info["indoprayer_isya"] = prayer_times["isya"]
+        else:
+            self.prayer_times_info["indoprayer_imsak"] = "00:00"
+            self.prayer_times_info["indoprayer_subuh"] = "00:00"
+            self.prayer_times_info["indoprayer_terbit"] = "00:00"
+            self.prayer_times_info["indoprayer_dzuhur"] = "00:00"
+            self.prayer_times_info["indoprayer_ashar"] = "00:00"
+            self.prayer_times_info["indoprayer_maghrib"] = "00:00"
+            self.prayer_times_info["indoprayer_isya"] = "00:00"
+            #for sensor_type in SENSOR_TYPES:
+            #    self.prayer_times_info[sensor_type] = prayer_times[sensor_type]
 
         """
         for prayer, time in prayer_times.items():
             self.prayer_times_info[prayer] = dt_util.parse_datetime(
                 f"{dt_util.now().date()} {time}"
             )
-        await self.async_schedule_future_update()
+        
         """
+        await self.async_schedule_future_update()
 
         _LOGGER.debug("New prayer times retrieved. Updating sensors")
         async_dispatcher_send(self.hass, DATA_UPDATED)
@@ -208,7 +239,7 @@ class IndoPrayerClient:
             raise ConfigEntryNotReady from err
 
         await self.async_update()
-        #self.config_entry.add_update_listener(self.async_options_updated)
+        self.config_entry.add_update_listener(self.async_options_updated)
 
         self.hass.config_entries.async_setup_platforms(self.config_entry, PLATFORMS)
 

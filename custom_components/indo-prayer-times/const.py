@@ -3,13 +3,13 @@ NAME = "Indonesian Islamic Prayer Times"
 PRAYER_TIMES_ICON = "mdi:calendar-clock"
 
 SENSOR_TYPES = {
-    "imsak": "Imsak",
-    "subuh": "Subuh",
-    "terbit": "Terbit",
-    "dzuhur": "Dzuhur",
-    "ashar": "Ashar",
-    "maghrib": "Maghrib",
-    "isya": "Isya",
+    "indoprayer_imsak": "Jadwal Imsak",
+    "indoprayer_subuh": "Jadwal Subuh",
+    "indoprayer_terbit": "Jadwal Matahari Terbit",
+    "indoprayer_dzuhur": "Jadwal Dzuhur",
+    "indoprayer_ashar": "Jadwal Ashar",
+    "indoprayer_maghrib": "Jadwal Maghrib",
+    "indoprayer_isya": "Jadwal Isya",
 }
 
 DATA_UPDATED = "Islamic_prayer_data_updated"
